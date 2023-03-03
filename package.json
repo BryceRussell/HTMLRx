@@ -6,17 +6,19 @@
     "module": "dist/index.mjs",
     "types": "index.d.ts",
     "scripts": {
-        "build": "tsup index.ts --format cjs,esm --dts",
+        "dev": "vitest",
+        "test": "vitest run",
         "lint": "tsc",
-        "test": "jest tests/general.test.js"
+        "build": "tsup index.ts --format cjs,esm --dts"
     },
     "devDependencies": {
         "@changesets/cli": "^2.26.0",
         "@types/node": "^18.14.2",
-        "jest": "^29.4.3",
-        "jest-extended": "^3.2.4",
         "ts-node": "^10.9.1",
         "tsup": "^6.6.3",
         "typescript": "^4.9.5"
+    },
+    "dependencies": {
+        "vitest": "^0.29.2"
     }
 }

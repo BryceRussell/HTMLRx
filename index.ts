@@ -1,12 +1,13 @@
-type  Tags = Map<string, number[]>
+type  TagMap = Map<string, number[]>
 type Tag = [string, number]
+type Tags = Tag[]
 
 export class HTMLRx {
     HTML: string;
-    selected: [string, number] | undefined;
-    attributeTags: Tags;
-    openTags: Tags;
-    closingTags: Tags;
+    selected: Tag | undefined;
+    attributeTags: TagMap;
+    openTags: TagMap;
+    closingTags: TagMap;
 
     constructor(html: string) {
         this.HTML = html
@@ -62,33 +63,74 @@ export class HTMLRx {
     //   Utility functions
 
       
-    select(tag?: string, attrs?: Record<string, string | undefined>): Array<[string, number]> {
-        const attrsList = attrs ? Object.entries(attrs) : undefined;
-        const matchingTags: Array<[string, number]> = [];
-      
-        for (const [tagStr, startIndexes] of this.attributeTags.entries()) {
-          const [tagMatch, attrMatch] = tagStr.split(/(?<=\<\w+)\s+/);
-          if (tag && tagMatch !== `<${tag}`) continue;
-      
-          const attrMap = Object.fromEntries(
-            [...(attrMatch || '').matchAll(/(\S+)=["']?((?:.(?!["']?\s+(?:\S+)=|[>"']))+.)["']?/g)]
-            .map((m) => [m[1], m[2]])
-          );
-      
-          if (!attrsList || attrsList.every(([name, value]) => {
-            if (value === null || value === undefined || value === '') {
-              return Object.values(attrMap).includes(name);
-            }
-            return attrMap[name] === value;
-          })) {
-            for (const startIndex of startIndexes) {
-              matchingTags.push([tagStr, startIndex]);
-            }
-          }
+    /**
+   * Returns an array of tuples, each containing a string representation of a matching HTML tag
+   * and the index of its opening angle bracket in the source HTML string.
+   * 
+   * @param tag - The tag name to match.
+   * @param attrs - An object containing attribute names and values to match.
+   * @returns An array of matching tags.
+   */
+    select(tag?: string, attrs?: Record<string, string | undefined>, n: number | boolean = false): Tags {
+      // Convert the attrs object to an array of [name, value] tuples or undefined.
+      const attrsList = attrs ? Object.entries(attrs) : undefined;
+    
+      // An array to store matching tags.
+      const results: Tags = [];
+    
+      // Iterate over each matching tag.
+      for (const [tagStr, startIndexes] of this.attributeTags.entries()) {
+        // Split the tag string into its tag name and attribute string.
+        const [tagMatch, attrMatch] = tagStr.split(/(?<=\<\w+)\s+/);
+    
+        // If the tag name doesn't match the requested tag, skip to the next tag.
+        if (!tagMatch?.startsWith(`<${tag}`)) {
+          continue;
         }
-      
-        return matchingTags;
+    
+        // Convert the tag's attribute string to an object.
+        const tagAttrMap = Object.fromEntries(
+          // Match all attribute name-value pairs using a regular expression.
+          Array.from(attrMatch?.matchAll(/(\S+)=["']?((?:.(?!["']?\s+(?:\S+)=|[>"']))+.)["']?/g) || [])
+            .map((m) => [m[1], m[2]])
+        );
+    
+        let startIndex: number | undefined = undefined;
+    
+        // Check that all attributes in the attrsList match the attributes in the tag.
+        if (!attrsList || attrsList.every(([name, value]) => {
+          // If the attribute name is empty, check that the attribute value matches any attribute.
+          if (name === '') {
+            return Object.values(tagAttrMap).includes(value);
+          // If the attribute value is empty, check that the attribute name matches.
+          } else if (value === null || value === undefined || value === '') {
+            return Object.values(tagAttrMap).includes(name);
+          // Otherwise, check that the attribute name and value match.
+          } else {
+            return tagAttrMap[name] === value;
+          }
+        })) {
+          // If all attributes match, set the start index of the matching tag.
+          startIndex = startIndexes[0];
+        }
+    
+        // If a matching tag was found, add it to the results array.
+        if (startIndex !== undefined) {
+          results.push([tagStr, startIndex]);
+        }
       }
+    
+      // Return the matching tag(s) based on the value of the n parameter.
+      if (n === true) return results;
+      if (n === false || n < 2) return [results[0]!];
+      return results.slice(0, n);
+    }
+    
+
+    
+    
+    
+    
       
     
       
