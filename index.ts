@@ -1,199 +1,202 @@
-type  TagMap = Map<string, number[]>
-type Tag = [string, number]
-type Tags = Tag[]
+export type Tag = [string, number]
+export type TagMap = Map<string, number[]>
+export type Attributes = Record<string, string | null | undefined>
+export type AllAttributes = Record<string, Attributes>
 
+/**
+ * Matches declaration tags: `<! >`
+ *
+ * @type {RegExp}
+ * @const DECLARATION
+ */
+export const DECLARATION = /<!([^>]*)>/g
+
+/**
+ * Matches HTML comments: `<!-- -->`
+ *
+ * @type {RegExp}
+ * @const HTMLCOMMENT
+ */
+export const HTMLCOMMENT = /<!--([\s\S]*?)-->/g
+
+/**
+ * Matches the closing tag of an HTML element: `</div>`
+ *
+ * @type {RegExp}
+ * @const CLOSETAGS
+ */
+export const CLOSETAGS = /<\s*\/\s*([^\s>]+)\s*>/g
+
+/**
+ * Matches the start of a HTML element's open tag: `<div`
+ *
+ * @type {RegExp}
+ * @const OPENTAGSEMPTY
+ */
+export const OPENTAGS = /<([^\/][^\s>]*)/g
+
+/**
+ * Matches the the full open tag of an HTML element: `<input type="email" required/>`
+ *
+ * @type {RegExp}
+ * @const OPENTAGSFULL
+ */
+export const OPENTAGSRAW = /<[^\/]([^ >]*)([^>]*?)\/?>/g
+
+/**
+ * Match key/values pairs in a raw attribute string: `type="email" required`
+ *
+ * @type {RegExp}
+ * @const ATTRIBUTES
+ */
+export const ATTRIBUTES = /(\w+)(?:=("[^"]*"|'[^']*'|[^'"\s]*)|)/g
+
+/**
+ * Creates a regex pattern to match the full raw open tag of a tag name/s
+ *
+ * @param {string|string[]} tag - HTML element tag/s regex will match
+ * @param {string} flags - 
+ * @returns {number} The sum of the two numbers.
+ */
+export function GETRAWOPENTAG(tag: string | string[], flags: string): RegExp {
+  return RegExp(`/<${typeof tag === 'string' ? tag : `(${tag.join('|')})`}([^>]*)\/?>/${flags}`)
+}
+
+/**
+ * Creates a regular expression pattern to match occurrences of an attribute in a string of HTML.
+ *
+ * @param {string|string[]} tag - The HTML element tag or tags that the regular expression should match.
+ *                                 Can be a string or an array of strings.
+ * @param {string} flags - Optional flags to use when creating the regular expression pattern.
+ * @returns {RegExp} A regular expression object that matches the specified attribute in an HTML string.
+ *
+ * @example
+ *
+* const html = '<img src="image1.jpg" alt="A sample image"><img src="image2.jpg" alt="Another image">'
+* const matches = html.match(GETATTRIBUTE('src'))
+* console.log(matches) /* [
+*  'src="image1.jpg"',
+*  'src',
+*  'image1.jpg',
+*  index: 5,
+*  input: '<img src="image1.jpg" alt="A sample image"><img src="image2.jpg" alt="Another image">',
+*  groups: undefined
+*  ] \*\/   
+*/
+export function GETATTRIBUTE(attr: string | string[], flags: string): RegExp {
+  return RegExp(`/${typeof attr === 'string' ? attr : `(${attr.join('|')})`}=["']([^"']*)["']/${flags}`)
+}
+
+export function getClosingTags(html: string): TagMap {
+  const tags = new Map()
+  let match
+  while ((match = CLOSETAGS.exec(html)) !== null) {
+    const tag = match[1] as string
+    const index = match.index + tag.length + 3
+    if (tags.has(tag)) tags.set(tag, [...(tags.get(tag) as number[]), index])
+    else tags.set(tag, [index])
+  }
+  return tags
+}
+
+export function getOpenTags(html: string): TagMap {
+  const tags = new Map()
+  let match
+  while ((match = OPENTAGS.exec(html)) !== null) {
+    const tag = match[1] as string
+    const index = match.index
+    if (tags.has(tag)) tags.set(tag, [...(tags.get(tag) as number[]), index])
+    else tags.set(tag, [index])
+  }
+  return tags
+}
+
+export function getOpenTagsRaw(html: string, tagsWithAttributesOnly?: boolean): TagMap {
+  const tags = new Map()
+  let match
+  while ((match = OPENTAGSRAW.exec(html)) !== null) {
+    const tag = match[0]
+    const index = match.index
+    if (tags.has(tag)) tags.set(tag, [...(tags.get(tag) as number[]), index])
+    else tags.set(tag, [index])
+  }
+  return tags
+}
+
+export function getAllAttributes(openTagsRaw: TagMap): AllAttributes {
+  const allAttributes: AllAttributes = {}
+  for (const tag of openTagsRaw.keys()) {
+    const unwrap = tag.replace(/^<|(\/>|>)$/g, '')
+    const [, attributesRaw] = unwrap.split(/\s+/)
+    if (!attributesRaw) continue
+    let match
+    while ((match = ATTRIBUTES.exec(attributesRaw)) !== null) {
+      const key = match[1]!
+      const val = match[2] || match[3] || match[4] || null
+      allAttributes[tag] = allAttributes[tag] || {}
+      allAttributes[tag]![key] = val
+    }
+  }
+  return allAttributes
+}
+
+/**
+ * Transform strings of HTML
+ * 
+ * @class HTMLRx
+ */
 export class HTMLRx {
-    HTML: string;
-    selected: Tag | undefined;
-    attributeTags: TagMap;
-    openTags: TagMap;
-    closingTags: TagMap;
+  public HTML: string
+  private _closeTags: TagMap | undefined
+  private _openTags: TagMap | undefined
+  private _rawTags: TagMap | undefined
+  public selected: Tag[] = []
 
-    constructor(html: string) {
-        this.HTML = html
-        this.openTags = HTMLRx.getOpenTags(html)
-        this.closingTags = HTMLRx.getClosingTags(html)
-        this.attributeTags = HTMLRx.getAttributeTags(html)
-    }
-
-    toString() {
-        return this.HTML
-    }
-
-    static getOpenTags(html: string) {
-        const tags = new Map()
-        const regex = /<(\w+)\b/g;
-        let match;
-        while ((match = regex.exec(html)) !== null) {
-            const tag = match[1] as string;
-            const index = match.index;
-            if (tags.has(tag)) tags.set(tag, [...(tags.get(tag) as number[]), index])
-            else tags.set(tag, [index])
-        }
-        return tags
-    }
-
-    static getClosingTags(html: string) {
-        const tags = new Map()
-        const regex = /<\/(?!area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)(\w+)\s*>/g;
-        let match;
-        while ((match = regex.exec(html)) !== null) {
-            const tag = match[1] as string;
-            const index = match.index + tag.length + 3;
-            if (tags.has(tag)) tags.set(tag, [...(tags.get(tag) as number[]), (index)])
-            else tags.set(tag, [index])
-        }
-        return tags
-    }
-
-    static getAttributeTags(html: string) {
-        const tags = new Map()
-        const regex = /\<\w+(?:\s+[\w-]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[\^'">\s]+)))*\s*\/?\>/g;
-        let match;
-        while ((match = regex.exec(html)) !== null) {
-            const tag = match[0];
-            const index = match.index;
-            if (tags.has(tag)) tags.set(tag, [...(tags.get(tag) as number[]), (index)])
-            else tags.set(tag, [index])
-        }
-        return tags
-    }
-
-
-    //   Utility functions
-
-      
-    /**
-   * Returns an array of tuples, each containing a string representation of a matching HTML tag
-   * and the index of its opening angle bracket in the source HTML string.
-   * 
-   * @param tag - The tag name to match.
-   * @param attrs - An object containing attribute names and values to match.
-   * @returns An array of matching tags.
+  /**
+   * Initialize HTMLRx transformer
+   *
+   * @param {string} html - a string of HTML
    */
-    select(tag?: string, attrs?: Record<string, string | undefined>, n: number | boolean = false): Tags {
-      // Convert the attrs object to an array of [name, value] tuples or undefined.
-      const attrsList = attrs ? Object.entries(attrs) : undefined;
-    
-      // An array to store matching tags.
-      const results: Tags = [];
-    
-      // Iterate over each matching tag.
-      for (const [tagStr, startIndexes] of this.attributeTags.entries()) {
-        // Split the tag string into its tag name and attribute string.
-        const [tagMatch, attrMatch] = tagStr.split(/(?<=\<\w+)\s+/);
-    
-        // If the tag name doesn't match the requested tag, skip to the next tag.
-        if (!tagMatch?.startsWith(`<${tag}`)) {
-          continue;
-        }
-    
-        // Convert the tag's attribute string to an object.
-        const tagAttrMap = Object.fromEntries(
-          // Match all attribute name-value pairs using a regular expression.
-          Array.from(attrMatch?.matchAll(/(\S+)=["']?((?:.(?!["']?\s+(?:\S+)=|[>"']))+.)["']?/g) || [])
-            .map((m) => [m[1], m[2]])
-        );
-    
-        let startIndex: number | undefined = undefined;
-    
-        // Check that all attributes in the attrsList match the attributes in the tag.
-        if (!attrsList || attrsList.every(([name, value]) => {
-          // If the attribute name is empty, check that the attribute value matches any attribute.
-          if (name === '') {
-            return Object.values(tagAttrMap).includes(value);
-          // If the attribute value is empty, check that the attribute name matches.
-          } else if (value === null || value === undefined || value === '') {
-            return Object.values(tagAttrMap).includes(name);
-          // Otherwise, check that the attribute name and value match.
-          } else {
-            return tagAttrMap[name] === value;
-          }
-        })) {
-          // If all attributes match, set the start index of the matching tag.
-          startIndex = startIndexes[0];
-        }
-    
-        // If a matching tag was found, add it to the results array.
-        if (startIndex !== undefined) {
-          results.push([tagStr, startIndex]);
-        }
-      }
-    
-      // Return the matching tag(s) based on the value of the n parameter.
-      if (n === true) return results;
-      if (n === false || n < 2) return [results[0]!];
-      return results.slice(0, n);
+  constructor(html: string) {
+    this.HTML = html
+  }
+
+  toString() {
+    return this.HTML
+  }
+
+  //  Lazy initialization tag map
+  get closeTags() {
+    if (!this._closeTags) this._closeTags = getClosingTags(this.HTML)
+    return this._closeTags
+  }
+  get openTags() {
+    if (!this._openTags) this._openTags = getOpenTags(this.HTML)
+    return this._openTags
+  }
+  get rawTags() {
+    if (!this._rawTags) this._rawTags = getOpenTagsRaw(this.HTML)
+    return this._rawTags
+  }
+
+  select(tag?: string, attrs?: Attributes, n: number | boolean = false): void {
+    const results: Tag[] = []
+      // ...
+    n === true
+      ? (this.selected = [...results])
+      : n === false || n < 2
+      ? (this.selected = [results[0]!])
+      : results.slice(0, n)
+  }
+
+  element(rawTag: Tag): string[] | string | undefined {
+    const [tag, index] = rawTag
+    const openIndexes = tag && this.openTags.get(tag) || []
+    const closeIndexes = tag && this.closeTags.get(tag) || []
+
+    if (openIndexes.length === 1) {
+      if (closeIndexes.length === 0) return this.HTML.slice(openIndexes[0], openIndexes[0]! + tag!.length)
+      if (closeIndexes.length === 1) return this.HTML.slice(openIndexes[0], closeIndexes[0])
     }
-    
-
-    
-    
-    
-    
-      
-    
-      
-      
-      
-    
-      
-
-      replaceNth(search: string, replace: string, n: number = 1): string {
-        let count = 0;
-        let found = false;
-        const HTML = this.HTML.replace(new RegExp(search, 'g'), (match) => {
-          count++;
-          if (count === n && !found) return replace
-          return match
-        })
-        return HTML
-    }
-    
-
-      element(
-        tag: string,
-        attributes?: Record<string, string | undefined | null>,
-        amount: number | boolean = false
-      ): string[] | string | null | undefined {
-        const openIndexes = this.openTags.get(tag)
-        const closingIndexes = this.closingTags.get(tag)
-
-        if (openIndexes?.length === 1 && closingIndexes?.length === 1) {
-            return this.HTML.slice(openIndexes[0], closingIndexes[0])
-        }
-      }
-
-      modifyTag(
-        openTag: string,
-        attrs: Record<string, string | ((oldValue: string | undefined) => string | undefined) | undefined> = {},
-        tag: string
-      ): string {
-        const tagParts = openTag.match(/^<(\w+)(\s+[^>]+)?>/);
-        if (!tagParts) return openTag;
-      
-        const oldAttrs = Object.fromEntries((tagParts[2] || '').trim().split(/\s+/).map(attr => {
-          const [name, value] = attr.split('=');
-          return [name, value?.replace(/"/g, '')];
-        }));
-      
-        const newAttrs = { ...oldAttrs };
-        for (const [name, value] of Object.entries(attrs)) {
-          if (typeof value === 'function') {
-            const oldValue = oldAttrs[name];
-            newAttrs[name] = value(oldValue);
-          } else {
-            newAttrs[name] = value;
-          }
-        }
-      
-        const attrStr = Object.entries(newAttrs)
-          .filter(([_, value]) => value !== undefined)
-          .map(([name, value]) => `${name}="${value}"`)
-          .join(' ');
-      
-        return `<${tag} ${attrStr}>`;
-      }
-      
-      
+  }
 }
