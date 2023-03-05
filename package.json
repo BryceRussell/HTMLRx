@@ -1,10 +1,22 @@
 {
   "name": "htmlrx",
   "version": "0.0.1",
+  "description": "Transform strings of HTML using regex",
+  "author": "Bryce Russell",
   "license": "MIT",
-  "main": "dist/index.js",
-  "module": "dist/index.mjs",
-  "types": "index.d.ts",
+  "keywords": [
+    "html",
+    "regex",
+    "transform"
+  ],
+  "homepage": "https://github.com/BryceRussell/HTMLRx#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/BryceRussell/HTMLRx"
+  },
+  "bugs": {
+    "url": "https://github.com/BryceRussell/HTMLRx/issues"
+  },
   "scripts": {
     "dev": "vitest",
     "test": "vitest run",
@@ -23,5 +35,8 @@
     "tsup": "^6.6.3",
     "typescript": "^4.9.5",
     "vitest": "^0.29.2"
-  }
+  },
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts"
 }
