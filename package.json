@@ -21,7 +21,7 @@
     "dev": "vitest",
     "test": "vitest run",
     "lint": "tsc",
-    "build": "tsup index.ts --format cjs,esm --dts",
+    "build": "tsup src/index.ts --format cjs,esm --dts",
     "ci": "pnpm lint && pnpm test && pnpm build",
     "release": "pnpm lint && pnpm test && pnpm build && changeset publish"
   },
@@ -29,6 +29,7 @@
     "@changesets/cli": "^2.26.0",
     "@types/benchmark": "^2.1.2",
     "@types/node": "^18.14.2",
+    "arktype": "1.0.8-alpha",
     "benchmark": "^2.1.4",
     "prettier": "^2.8.4",
     "ts-node": "^10.9.1",

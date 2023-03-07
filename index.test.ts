@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { HTMLRx, getClosingTags, getOpenTags, getOpenTagsRaw, getAllAttributes } from './index'
+import { HTMLRx, getClosingTags, getOpenTags, getOpenTagsRaw, getAllAttributes } from './src/index'
 
 describe('HTMLRx Class', () => {
   // <!DOCTYPE html>
@@ -46,7 +46,7 @@ describe('HTMLRx Class', () => {
     '<details open></details>',
     '<html><body></body></html>',
     '<html lang="en"><body class="dark" data-theme="dark">Descriptive Text</body></html>',
-    page
+    page,
   ]
 
   const H = new HTMLRx(page)
@@ -73,7 +73,6 @@ describe('HTMLRx Class', () => {
     }
   })
 
-
   it('Get raw tags', () => {
     for (const test of HTMLTests) {
       const tags = getOpenTagsRaw(test)
@@ -92,7 +91,7 @@ describe('HTMLRx Class', () => {
   //     for (const [tag, attrs] of rawTags.entries()) {
   //       const hasTag = test.includes(tag)
   //       for (const [attr, val] of Object.entries(attrs)) {
-  //         const hasAttrs = 
+  //         const hasAttrs =
   //           (tag.includes(`${attr} `)) ||
   //           (tag.includes(` ${attr} `)) ||
   //           (tag.includes(` ${attr}`)) ||

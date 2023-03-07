@@ -1,7 +1,7 @@
-export type Tag = [string, number]
-export type TagMap = Map<string, number[]>
-export type Attributes = Record<string, string | null | undefined>
-export type AllAttributes = Record<string, Attributes>
+type Tag = [string, number];
+type Attributes = Record<string, string | null | undefined>;
+type TagMap = Map<string, number[]>;
+type AllAttributes = Record<string, Attributes>;
 
 /**
  * Matches declaration tags: `<! >`
@@ -9,7 +9,7 @@ export type AllAttributes = Record<string, Attributes>
  * @type {RegExp}
  * @const DECLARATION
  */
-export const DECLARATION = /<!([^>]*)>/g
+export const HTMLDECLARATION = /<!([^>]*)>/g
 
 /**
  * Matches HTML comments: `<!-- -->`
@@ -19,13 +19,22 @@ export const DECLARATION = /<!([^>]*)>/g
  */
 export const HTMLCOMMENT = /<!--([\s\S]*?)-->/g
 
+
+/**
+ * Matches any open or closed html tag
+ *
+ * @type {RegExp}
+ * @const CLOSETAGS
+ */
+export const HTMLTAG = /<[^>]*>/g
+
 /**
  * Matches the closing tag of an HTML element: `</div>`
  *
  * @type {RegExp}
  * @const CLOSETAGS
  */
-export const CLOSETAGS = /<\s*\/\s*([^\s>]+)\s*>/g
+export const HTMLTAGCLOSE = /<\s*\/\s*([^\s>]+)\s*>/g
 
 /**
  * Matches the start of a HTML element's open tag: `<div`
@@ -33,7 +42,7 @@ export const CLOSETAGS = /<\s*\/\s*([^\s>]+)\s*>/g
  * @type {RegExp}
  * @const OPENTAGSEMPTY
  */
-export const OPENTAGS = /<([^\/][^\s>]*)/g
+export const HTMLTAGOPEN = /<([^\/][^\s>]*)/g
 
 /**
  * Matches the the full open tag of an HTML element: `<input type="email" required/>`
@@ -41,7 +50,7 @@ export const OPENTAGS = /<([^\/][^\s>]*)/g
  * @type {RegExp}
  * @const OPENTAGSFULL
  */
-export const OPENTAGSRAW = /<[^\/]([^ >]*)([^>]*?)\/?>/g
+export const HTMLTAGOPENRAW = /<[^\/]([^ >]*)([^>]*?)\/?>/g
 
 /**
  * Match key/values pairs in a raw attribute string: `type="email" required`
@@ -69,19 +78,6 @@ export function GETRAWOPENTAG(tag: string | string[], flags: string): RegExp {
  *                                 Can be a string or an array of strings.
  * @param {string} flags - Optional flags to use when creating the regular expression pattern.
  * @returns {RegExp} A regular expression object that matches the specified attribute in an HTML string.
- *
- * @example
- *
-* const html = '<img src="image1.jpg" alt="A sample image"><img src="image2.jpg" alt="Another image">'
-* const matches = html.match(GETATTRIBUTE('src'))
-* console.log(matches) /* [
-*  'src="image1.jpg"',
-*  'src',
-*  'image1.jpg',
-*  index: 5,
-*  input: '<img src="image1.jpg" alt="A sample image"><img src="image2.jpg" alt="Another image">',
-*  groups: undefined
-*  ] \*\/   
 */
 export function GETATTRIBUTE(attr: string | string[], flags: string): RegExp {
   return RegExp(`/${typeof attr === 'string' ? attr : `(${attr.join('|')})`}=["']([^"']*)["']/${flags}`)
@@ -90,7 +86,7 @@ export function GETATTRIBUTE(attr: string | string[], flags: string): RegExp {
 export function getClosingTags(html: string): TagMap {
   const tags = new Map()
   let match
-  while ((match = CLOSETAGS.exec(html)) !== null) {
+  while ((match = HTMLTAGCLOSE.exec(html)) !== null) {
     const tag = match[1] as string
     const index = match.index + tag.length + 3
     if (tags.has(tag)) tags.set(tag, [...(tags.get(tag) as number[]), index])
@@ -102,7 +98,7 @@ export function getClosingTags(html: string): TagMap {
 export function getOpenTags(html: string): TagMap {
   const tags = new Map()
   let match
-  while ((match = OPENTAGS.exec(html)) !== null) {
+  while ((match = HTMLTAGOPEN.exec(html)) !== null) {
     const tag = match[1] as string
     const index = match.index
     if (tags.has(tag)) tags.set(tag, [...(tags.get(tag) as number[]), index])
@@ -114,7 +110,7 @@ export function getOpenTags(html: string): TagMap {
 export function getOpenTagsRaw(html: string, tagsWithAttributesOnly?: boolean): TagMap {
   const tags = new Map()
   let match
-  while ((match = OPENTAGSRAW.exec(html)) !== null) {
+  while ((match = HTMLTAGOPENRAW.exec(html)) !== null) {
     const tag = match[0]
     const index = match.index
     if (tags.has(tag)) tags.set(tag, [...(tags.get(tag) as number[]), index])

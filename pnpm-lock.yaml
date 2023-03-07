@@ -4,6 +4,7 @@ specifiers:
   '@changesets/cli': ^2.26.0
   '@types/benchmark': ^2.1.2
   '@types/node': ^18.14.2
+  arktype: 1.0.8-alpha
   benchmark: ^2.1.4
   prettier: ^2.8.4
   ts-node: ^10.9.1
@@ -15,6 +16,7 @@ devDependencies:
   '@changesets/cli': 2.26.0
   '@types/benchmark': 2.1.2
   '@types/node': 18.14.2
+  arktype: 1.0.8-alpha
   benchmark: 2.1.4
   prettier: 2.8.4
   ts-node: 10.9.1_ellgaeuoqnti3hful2ny2iugba
@@ -854,6 +856,11 @@ packages:
     resolution: {integrity: sha512-o5Roy6tNG4SL/FOkCAN6RzjiakZS25RLYFrcMttJqbdd8BWrnA+fGz57iN5Pb06pvBGvl5gQ0B48dJlslXvoTg==}
     dependencies:
       sprintf-js: 1.0.3
+    dev: true
+
+  /arktype/1.0.8-alpha:
+    resolution: {integrity: sha512-xFiyXEfM277yQtRuv2sNhg/EM8nBHI5RItzWTPLaU0/Ha9CGRLW1bS8nvnRpl5zqhKvWfB2ewlYZolj/2jwgBg==}
+    requiresBuild: true
     dev: true
 
   /array-union/2.1.0:
