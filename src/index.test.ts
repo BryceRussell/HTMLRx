@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { HTMLRx, getClosingTags, getOpenTags, getOpenTagsRaw, getAllAttributes } from './src/index'
+import { HTMLRx, tagWithName, tagWithAttribute, getClosingTags, getOpenTags, getOpenTagsRaw, getAllAttributes } from '~/index'
 
 describe('HTMLRx Class', () => {
   // <!DOCTYPE html>
@@ -14,7 +14,7 @@ describe('HTMLRx Class', () => {
         <header>
           <nav>
             <ul>
-              <li><a href="#">Home</a></li>
+              <li num=1><a href="#">Home</a></li>
               <li><a href="#">About</a></li>
               <li><a href="#">Contact</a></li>
             </ul>
@@ -50,6 +50,49 @@ describe('HTMLRx Class', () => {
   ]
 
   const H = new HTMLRx(page)
+
+  it('tagWithName(): Get a specific HTML tag', () => {
+    expect(tagWithAttribute('href').exec(page)).toMatchInlineSnapshot(`
+      [
+        "<link rel=\\"stylesheet\\" href=\\"styles.css\\">",
+        "styles.css",
+        undefined,
+        undefined,
+      ]
+    `)
+    expect(tagWithAttribute('for').exec(page)).toMatchInlineSnapshot(`
+      [
+        "<label for=\\"name\\">",
+        "name",
+        undefined,
+        undefined,
+      ]
+    `)
+    expect(tagWithAttribute('type').exec(page)).toMatchInlineSnapshot(`
+      [
+        "<input type=\\"text\\" id=\\"name\\" name=\\"name\\" required/>",
+        "text",
+        undefined,
+        undefined,
+      ]
+    `)
+    expect(tagWithAttribute('num').exec(page)).toMatchInlineSnapshot(`
+      [
+        "<li num=1>",
+        undefined,
+        undefined,
+        "1",
+      ]
+    `)
+    expect(tagWithAttribute('required').exec(page)).toMatchInlineSnapshot(`
+      [
+        "<input type=\\"text\\" id=\\"name\\" name=\\"name\\" required/>",
+        undefined,
+        undefined,
+        undefined,
+      ]
+    `)
+  })
 
   it('Get closing tags', () => {
     for (const test of HTMLTests) {

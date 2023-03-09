@@ -1,13 +1,19 @@
 type Whitespace = ' ' | '\n' | '\t'
 type Quote = '"' | "'"
 
+export type HTMLTagPosition = [string, number]
+export type HTMLTagPositionMap = Map<string, number[]>
+
+export type AttributesObj = Record<string, string | true | (string | true)[]>
+export type HTMLAttributesMap = Record<string, AttributesObj>
+
 // ` word\t\n another word` => ['word', 'another', 'word']
-type SplitWhitespace<S extends string, Word extends string = ''> = S extends `${infer First}${infer Rest}`
+type SplitAttributes<S extends string, Word extends string = ''> = S extends `${infer First}${infer Rest}`
   ? First extends Whitespace
     ? Word extends ''
-      ? SplitWhitespace<Rest, ''>
-      : [Word, ...SplitWhitespace<Rest, ''>]
-    : SplitWhitespace<Rest, `${Word}${First}`>
+      ? SplitAttributes<Rest, ''>
+      : [Word, ...SplitAttributes<Rest, ''>]
+    : SplitAttributes<Rest, `${Word}${First}`>
   : Word extends ''
   ? []
   : [Word]
@@ -45,36 +51,35 @@ type MergeParams<T extends string[], M = {}> = T extends [infer E, ...infer Rest
 
 /* --- */
 
-type ParseRawHTMLAttributes<T extends string> = MergeParams<SplitWhitespace<T>>
+export type ParseHTMLAttributes<T extends string> = MergeParams<SplitAttributes<T>>
 
 type CloseTag<Str extends string> = Str extends `</${infer Tag}>`
   ? Tag
   : never
 
-  type StringArray<T extends any[]> = {
-    [K in keyof T]: string;
-  }
+type ParseHTMLTag<Str extends string> = 
+    SplitAttributes<Str> extends [infer Name, ...infer Attrs extends string[]]
+      ? [Name, MergeParams<Attrs>]
+      : Str
+
+type HTMLTagOpenEnd = '>' | '/>'
 
 type OpenTag<Str extends string | [string, Record<string, string|true>]> =
-  Str extends `<${infer Inside}`
-    ? Inside extends `${infer Data}>`
-      ? Inside extends `${infer _}/>`
-        ? never
-        : SplitWhitespace<Data> extends [infer Name, ...infer Attrs extends string[]]
-          ? [Name, MergeParams<Attrs>]
-          : Data
-      : SplitWhitespace<Inside> extends [infer Name, ...infer Attrs extends string[]]
-        ? [Name, MergeParams<Attrs>]
-        : Inside
+  Str extends `<${infer OpenEnd}`
+    ? Str extends `</${infer _}`
+      ? never
+      : Str extends `<${infer SelfClosing}/>`
+        ? ParseHTMLTag<SelfClosing>
+        : Str extends `<${infer Closed}/`
+          ? ParseHTMLTag<Closed>
+          : ParseHTMLTag<OpenEnd>
     : never
-
-const ooo: OpenTag<`<div>`> = ['div', {}]
-
-type HTMLTag<Str extends string> = OpenTag<Str> | CloseTag <Str>
-
-// Example usage
-const tagString = `<div class="test" open>`
-const tag: OpenTag<typeof tagString> = ['div', { class: 'test', open: true }]
+          
+    
+    type HTMLTag<Str extends string> = OpenTag<Str> | CloseTag <Str>
+    
+type openTagTest = OpenTag<`<div open/>`>
+type OpenTagTest2 = OpenTag<`<div class="test" open>`>
 
 const attrString = `
   required
@@ -84,6 +89,6 @@ const attrString = `
   test=2
 `
 
-type TestSplit = SplitWhitespace<typeof attrString>
+type TestSplit = SplitAttributes<typeof attrString>
 
-type TestAttrs = ParseRawHTMLAttributes<typeof attrString>
+type TestAttrs = ParseHTMLAttributes<typeof attrString>
