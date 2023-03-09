@@ -1,7 +1,7 @@
 
 import type {
-  HTMLTagPosition,
-  HTMLTagPositionMap,
+  HTMLTagPos,
+  HTMLTagPosMap,
   AttributesObj,
   HTMLAttributesMap,
   ParseHTMLAttributes,

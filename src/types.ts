@@ -1,8 +1,8 @@
 type Whitespace = ' ' | '\n' | '\t'
 type Quote = '"' | "'"
 
-export type HTMLTagPosition = [string, number]
-export type HTMLTagPositionMap = Map<string, number[]>
+export type HTMLTagPos = [string, number]
+export type HTMLTagPosMap = Map<string, number[]>
 
 export type AttributesObj = Record<string, string | true | (string | true)[]>
 export type HTMLAttributesMap = Record<string, AttributesObj>

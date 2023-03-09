@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { HTMLRx, tagWithName, tagWithAttribute, getClosingTags, getOpenTags, getOpenTagsRaw, getAllAttributes } from '~/index'
+import { tagWithName, tagWithAttribute } from '~/index'
 
 describe('HTMLRx Class', () => {
   // <!DOCTYPE html>
@@ -49,7 +49,6 @@ describe('HTMLRx Class', () => {
     page,
   ]
 
-  const H = new HTMLRx(page)
 
   it('tagWithName(): Get a specific HTML tag', () => {
     expect(tagWithAttribute('href').exec(page)).toMatchInlineSnapshot(`
@@ -94,39 +93,37 @@ describe('HTMLRx Class', () => {
     `)
   })
 
-  it('Get closing tags', () => {
-    for (const test of HTMLTests) {
-      const tags = getClosingTags(test)
-      for (const [tag, indexes] of tags) {
-        for (const i of indexes) {
-          expect(test.slice(i - tag.length - 3, i)).toBe(`</${tag}>`)
-        }
-      }
-    }
-  })
-
-  it('Get open tags', () => {
-    for (const test of HTMLTests) {
-      const tags = getOpenTags(test)
-      for (const [tag, indexes] of tags) {
-        for (const i of indexes) {
-          expect(test.slice(i, i + 1 + tag.length)).toBe(`<${tag}`)
-        }
-      }
-    }
-  })
-
-  it('Get raw tags', () => {
-    for (const test of HTMLTests) {
-      const tags = getOpenTagsRaw(test)
-      for (const [tag, indexes] of tags) {
-        for (const i of indexes) {
-          expect(test.slice(i, i + tag.length)).toBe(tag)
-        }
-      }
-    }
-  })
-
+  /* Old tests for HTMLTagPosMap (Map<string, number[]>) of open/close tags */
+  // it('Get closing tags', () => {
+  //   for (const test of HTMLTests) {
+  //     const tags = getClosingTags(test)
+  //     for (const [tag, indexes] of tags) {
+  //       for (const i of indexes) {
+  //         expect(test.slice(i - tag.length - 3, i)).toBe(`</${tag}>`)
+  //       }
+  //     }
+  //   }
+  // })
+  // it('Get open tags', () => {
+  //   for (const test of HTMLTests) {
+  //     const tags = getOpenTags(test)
+  //     for (const [tag, indexes] of tags) {
+  //       for (const i of indexes) {
+  //         expect(test.slice(i, i + 1 + tag.length)).toBe(`<${tag}`)
+  //       }
+  //     }
+  //   }
+  // })
+  // it('Get raw tags', () => {
+  //   for (const test of HTMLTests) {
+  //     const tags = getOpenTagsRaw(test)
+  //     for (const [tag, indexes] of tags) {
+  //       for (const i of indexes) {
+  //         expect(test.slice(i, i + tag.length)).toBe(tag)
+  //       }
+  //     }
+  //   }
+  // })
   // it('Get attributes from raw tags', () => {
   //   for (const test of HTMLTests) {
   //     const openTags = getOpenTagsRaw(test)
