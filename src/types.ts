@@ -1,11 +1,21 @@
 type Whitespace = ' ' | '\n' | '\t'
 type Quote = '"' | "'"
 
-export type HTMLTagPos = [string, number]
-export type HTMLTagPosMap = Map<string, number[]>
+export type HTMLTagPos = [number, string]
+export type HTMLPos = Record<string, number[]>
 
-export type AttributesObj = Record<string, string | true | (string | true)[]>
-export type HTMLAttributesMap = Record<string, AttributesObj>
+type TEEEST = Record<
+  string,
+  {
+    name: string
+    attrs: Attrs
+    indexes: number[]
+  }
+>
+
+export type Attrs = Record<string, string>
+export type HTMLTagAttrs = [string, Attrs]
+export type HTMLAttrs = Record<string, Attrs>
 
 // ` word\t\n another word` => ['word', 'another', 'word']
 type SplitAttributes<S extends string, Word extends string = ''> = S extends `${infer First}${infer Rest}`
@@ -53,6 +63,8 @@ type MergeParams<T extends string[], M = {}> = T extends [infer E, ...infer Rest
 
 export type ParseHTMLAttributes<T extends string> = MergeParams<SplitAttributes<T>>
 
+
+
 type CloseTag<Str extends string> = Str extends `</${infer Tag}>`
   ? Tag
   : never
@@ -61,8 +73,6 @@ type ParseHTMLTag<Str extends string> =
     SplitAttributes<Str> extends [infer Name, ...infer Attrs extends string[]]
       ? [Name, MergeParams<Attrs>]
       : Str
-
-type HTMLTagOpenEnd = '>' | '/>'
 
 type OpenTag<Str extends string | [string, Record<string, string|true>]> =
   Str extends `<${infer OpenEnd}`
@@ -76,7 +86,7 @@ type OpenTag<Str extends string | [string, Record<string, string|true>]> =
     : never
           
     
-    type HTMLTag<Str extends string> = OpenTag<Str> | CloseTag <Str>
+type HTMLTagParsed<Str extends string> = OpenTag<Str> | CloseTag<Str>
     
 type openTagTest = OpenTag<`<div open/>`>
 type OpenTagTest2 = OpenTag<`<div class="test" open>`>

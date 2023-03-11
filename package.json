@@ -31,6 +31,7 @@
     "@types/node": "^18.14.2",
     "arktype": "1.0.8-alpha",
     "benchmark": "^2.1.4",
+    "cheerio": "1.0.0-rc.12",
     "prettier": "^2.8.4",
     "ts-node": "^10.9.1",
     "tsup": "^6.6.3",
