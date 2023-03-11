@@ -1,6 +1,6 @@
 // import {  } from '~/util'
 
-import type { HTMLTagPos, HTMLPos, Attrs, HTMLAttrs, ParseHTMLAttributes } from '~/types'
+import type { HTMLTag, HTMLTagPos, HTMLPos, Attrs, HTMLAttrs, ParseHTMLAttributes, HTMLTagAttrs } from '~/types'
 
 const VOID_TAGS = [
   'meta',
@@ -23,18 +23,22 @@ const VOID_TAGS = [
 
 export const _HTMLDECLARATION = /<!([^>]*)>/
 export const _HTMLCOMMENT = /<!--([\s\S]*?)-->/
+
 export const _HTMLTAG = /<(\/?)\s*([^\s\/>]+)([^>]*)(?<!\/)(\/?)>/
-export const _HTMLTAGUNWRAP = /<\/?([^>]*)(?<!\/)\/?>/
+export const _HTMLTAGOPEN = /<\s*([^\s\/>]+)([^>]*)(?<!\/)(\/?)>/
+export const _PARSEATTRIBUTES = /([\w-]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([\w-]+)))?/
+
+export const _HTMLTAGCLOSE = /<\/\s*([^\s\/>]+)[^>]*>/
 export const _HTMLTAGOPENSTART = /<\s*([^\s\/>]+)/
-export const _HTMLTAGOPEN = /<\s*([^\s\/<>]+)\s*(?:\s*[^\/\s>]+)*\s*(\/?)>/
-export const _HTMLTAGCLOSE = /<\/\s*([^\s\/>]+)\s*[^>]*>/
-export const _PARSEATTRIBUTES = /([^\s'"=]+)=?(?:"([^"]*)"|'([^']*)'|([^'"\s]*))/
+export const _HTMLTAGUNWRAP = /<\/?([^>]*)(?<!\/)\/?>/
 
 export const HTMLDECLARATION = (flags: string = 'g') => new RegExp(_HTMLDECLARATION.source, flags)
 export const HTMLCOMMENT = (flags: string = 'g') => new RegExp(_HTMLCOMMENT.source, flags)
+
 export const HTMLTAG = (flags: string = 'g') => new RegExp(_HTMLTAG.source, flags)
-export const HTMLTAGOPENSTART = (flags: string = 'g') => new RegExp(_HTMLTAGOPENSTART.source, flags)
 export const HTMLTAGOPEN = (flags: string = 'g') => new RegExp(_HTMLTAGOPEN.source, flags)
+
+export const HTMLTAGOPENSTART = (flags: string = 'g') => new RegExp(_HTMLTAGOPENSTART.source, flags)
 export const HTMLTAGCLOSE = (flags: string = 'g') => new RegExp(_HTMLTAGCLOSE.source, flags)
 export const PARSEATTRIBUTES = (flags: string = 'g') => new RegExp(_PARSEATTRIBUTES.source, flags)
 // /type=?("[^"]*"|'[^']*'|[^'"\s]*)/
@@ -75,59 +79,79 @@ export function getTagClose(html: string, startPos: number, tagName?: string): H
 
 export class HTMLRx {
   HTML: string
-  selected?: HTMLTagPos
+  selected?: HTMLTag
 
   constructor(html: string) {
     this.HTML = html
   }
 
-  each<T>(exp: RegExp, callback: (match: RegExpExecArray) => T): T | T | void {
+  each<T>(str: string, exp: RegExp, callback: (match: RegExpExecArray) => T): T | void {
     let result
-    let match
-    while ((match = exp.exec(this.HTML)) !== null) {
-      let _result = callback(match)
-      if (_result) {
-        result = _result
-        break
+    const traverse = () => {
+      let match = exp.exec(str)
+      if (match !== null) {
+        result = callback(match)
+        if (result) return result
+        traverse()
       }
+      return null
     }
-    return result
+    traverse()
   }
 
   walk<T>(
-    callback: (
-      tag: {
-        raw: string
-        name: string
-        rawAttrs: string | null
-        close: boolean
-        selfClosing: boolean
-        index: number
-      },
+    callback: (tag: {
+      raw: string
+      name: string
+      rawAttrs: string | null
+      close: boolean
+      index: number
+      attrs: () => Attrs
       element: () => string | null
-    ) => T
+    }) => T
   ): T | void {
-    return this.each(HTMLTAG(), (m) =>
-      callback(
-        { raw: m[0], name: m[2]!, rawAttrs: m[3] || null, close: !!m[1], selfClosing: !!m[4], index: m.index },
-        () => this.element(m.index)
-      )
+    return this.each(this.HTML, HTMLTAG(), (m) =>
+      callback({
+        raw: m[0],
+        name: m[2]!,
+        rawAttrs: m[3] || null,
+        close: !!m[1],
+        index: m.index,
+        attrs: () => this.attrs(m[3]),
+        element: () => this.element(m.index),
+      })
     )
   }
 
   select(name?: string | null, attrs?: string | null, value?: string | null, n?: number) {
-    let count = 0
-    this.walk(({index, raw, name: _name}) => {
-      count++
-      if (name === _name) this.selected = [index, raw]
-      if (n && count >= n) this.selected = [index, raw]
+    this.walk(({ index, name: _name, rawAttrs, close }) => {
+      if (name === _name) {
+        this.selected = [index, _name, rawAttrs||'', close]
+        return true
+      }
     })
+    return this
   }
 
-  element(index?: number) {
+  attrs(rawAttrs?: string) {
+    let obj: Attrs = {}
+    let attrs = rawAttrs || this.selected?.[2]
+    if (attrs) {
+      this.each(attrs, PARSEATTRIBUTES(), (match) => {
+        const key = match?.[1]
+        if (key) obj[key] = match[2] ?? match[3] ?? match[4] ?? true
+      })
+    }
+    return obj
+  }
 
-    const tag = getTagClose(this.HTML, index || this.selected[0])
-    return tag ? this.HTML.slice(index, tag[0]) : null
+  element(index = this.selected?.[0]): string | null {
+    let tag
+    if (index) {
+      tag = getTagClose(this.HTML, index)
+      if (tag) return this.HTML.slice(index, tag[0])
+    }
+    return null
   }
 }
 

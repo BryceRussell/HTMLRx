@@ -2,6 +2,7 @@ type Whitespace = ' ' | '\n' | '\t'
 type Quote = '"' | "'"
 
 export type HTMLTagPos = [number, string]
+export type HTMLTag = [number, string, string, boolean]
 export type HTMLPos = Record<string, number[]>
 
 type TEEEST = Record<
@@ -13,7 +14,7 @@ type TEEEST = Record<
   }
 >
 
-export type Attrs = Record<string, string>
+export type Attrs = Record<string, string|true>
 export type HTMLTagAttrs = [string, Attrs]
 export type HTMLAttrs = Record<string, Attrs>
 

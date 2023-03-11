@@ -43,17 +43,14 @@ const suite = new Benchmark.Suite()
 
 suite
   .add('Regex 1', function () {
-    const T = new HTMLRx(input)
+    const $ = new HTMLRx(input)
 
-    const test = T
-      .walk(({name}, element) => {
-          if (name === 'details') return element()
-      })
+    const test = $.select('summary').element()
   })
   .add('Regex 2', function () {
     const $ = cheerio.load(input);
 
-    const test = $('input[type="text"]').html();
+    const test = $('details').html();
   })
   .on('cycle', function (event) {
     console.log(String(event.target))
