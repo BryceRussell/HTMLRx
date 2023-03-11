@@ -2,7 +2,12 @@ type Whitespace = ' ' | '\n' | '\t'
 type Quote = '"' | "'"
 
 export type HTMLTagPos = [number, string]
-export type HTMLTag = [number, string, string, boolean]
+export type HTMLTag = {
+  index: number
+  name: string
+  rawAttrs: string
+  selfClosing: boolean
+}
 export type HTMLPos = Record<string, number[]>
 
 type TEEEST = Record<

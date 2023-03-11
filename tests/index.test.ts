@@ -5,6 +5,7 @@ describe('HTMLRx Class', () => {
   // <!DOCTYPE html>
   const page = `
     <html dark>
+    <!-- test -->
       <head>
         <meta charset="utf-8">
         <title>Test Page</title>
