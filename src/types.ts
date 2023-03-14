@@ -1,27 +1,22 @@
 type Whitespace = ' ' | '\n' | '\t'
 type Quote = '"' | "'"
 
+export type Attrs = Record<string, string|boolean|null|undefined>
 export type HTMLTagPos = [number, string]
+
 export type HTMLTag = {
+  raw: string
   index: number
   name: string
   rawAttrs: string
   selfClosing: boolean
 }
-export type HTMLPos = Record<string, number[]>
 
-type TEEEST = Record<
-  string,
-  {
-    name: string
-    attrs: Attrs
-    indexes: number[]
-  }
->
-
-export type Attrs = Record<string, string|true>
-export type HTMLTagAttrs = [string, Attrs]
-export type HTMLAttrs = Record<string, Attrs>
+export type HTMLTagSelected = HTMLTag & {
+  attrs?: Attrs
+  closeTag?: HTMLTagPos | null
+  element?: string
+}
 
 // ` word\t\n another word` => ['word', 'another', 'word']
 type SplitAttributes<S extends string, Word extends string = ''> = S extends `${infer First}${infer Rest}`

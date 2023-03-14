@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { isHTMLTag, isHTMLTagOpen, isHTMLTagClose, tagWithName, matchTag, getTagClose } from '~/index'
+import { HTMLRx, HTMLTAG, HTMLTAGOPEN } from '~/index'
+import { Attrs } from '~/types'
 
 describe('HTMLRx Class', () => {
   // <!DOCTYPE html>
@@ -18,6 +19,18 @@ describe('HTMLRx Class', () => {
               <li><a href="#">Home</a></li>
               <li><a href="#">About</a></li>
               <li><a href="#">Contact</a></li>
+              <li>
+                <a>
+                  <details class="test">
+                    <summary>Open</summary>
+                    <ul>
+                      <li><a><svg></svg></a></li>
+                      <li><a><svg></svg></a></li>
+                      <li><a><svg></svg></a></li>
+                    </ul>
+                  </details>
+                </a>
+              </li>
             </ul>
           </nav>
         </header>
@@ -52,160 +65,152 @@ describe('HTMLRx Class', () => {
 
   const ATTRS: string[] = ['for','type','href','required','num','dark']
 
-  it('Test isHTMLTag() / HTMLTAG', () => {
+  it('Regex: HTMLTAG', () => {
+    const regex = HTMLTAG()
     // Open Tags
-    expect(isHTMLTag(`<h1>`)).toBe(true)
-    expect(isHTMLTag(`<h1 class="test">`)).toBe(true)
-    expect(isHTMLTag(`<details open>`)).toBe(true)
-    expect(isHTMLTag(`<h1 id="one" class="test">`)).toBe(true)
-    expect(isHTMLTag(`<h1 id='one" class="test'>`)).toBe(true)
-    expect(isHTMLTag(`<input type="text" required />`)).toBe(true)
-    expect(isHTMLTag(`<input id="search"type="text"required/>`)).toBe(true)
-    expect(isHTMLTag(`<\ninput\ntype="text"\nrequired\n/>`)).toBe(true)
+    expect(HTMLTAG().test((`<h1>`))).toBe(true)
+    expect(HTMLTAG().test((`<h1 class="test">`))).toBe(true)
+    expect(HTMLTAG().test((`<details open>`))).toBe(true)
+    expect(HTMLTAG().test((`<h1 id="one" class="test">`))).toBe(true)
+    expect(HTMLTAG().test((`<h1 id='one" class="test'>`))).toBe(true)
+    expect(HTMLTAG().test((`<input type="text" required />`))).toBe(true)
+    expect(HTMLTAG().test((`<input id="search"type="text"required/>`))).toBe(true)
+    expect(HTMLTAG().test((`<\ninput\ntype="text"\nrequired\n/>`))).toBe(true)
     // Closing Tags
-    expect(isHTMLTag(`</h1>`)).toBe(true)
-    expect(isHTMLTag(`</\nh1\n>`)).toBe(true)
-    expect(isHTMLTag(`</h1 class="test">`)).toBe(true)
-    expect(isHTMLTag(`</input type="text" required />`)).toBe(true)
-    expect(isHTMLTag(`</\ninput\ntype="text"\nrequired\n/>`)).toBe(true)
+    expect(HTMLTAG().test((`</h1>`))).toBe(true)
+    expect(HTMLTAG().test((`</\nh1\n>`))).toBe(true)
+    expect(HTMLTAG().test((`</h1 class="test">`))).toBe(true)
+    expect(HTMLTAG().test((`</input type="text" required />`))).toBe(true)
+    expect(HTMLTAG().test((`</\ninput\ntype="text"\nrequired\n/>`))).toBe(true)
     // Empty tags
-    expect(isHTMLTag(`<>`)).toBe(false)
-    expect(isHTMLTag(`</ >`)).toBe(false)
-    expect(isHTMLTag(`< />`)).toBe(false)
-    expect(isHTMLTag(`</ \n />`)).toBe(false)
-    expect(isHTMLTag(`< \n >`)).toBe(false)
+    expect(HTMLTAG().test((`<>`))).toBe(false)
+    expect(HTMLTAG().test((`</ >`))).toBe(false)
+    expect(HTMLTAG().test((`< />`))).toBe(false)
+    expect(HTMLTAG().test((`</ \n />`))).toBe(false)
+    expect(HTMLTAG().test((`< \n >`))).toBe(false)
   })
 
-  it(`Test isHTMLTagOpen() / HTMLTAGOPEN`, () => {
+  it(`Regex: HTMLTAGOPEN`, () => {
     // Open Tags
-    expect(isHTMLTagOpen(`<h1>`)).toBe(true)
-    expect(isHTMLTagOpen(`<h1 class="test">`)).toBe(true)
-    expect(isHTMLTagOpen(`<details open>`)).toBe(true)
-    expect(isHTMLTagOpen(`<h1 id="one" class="test">`)).toBe(true)
-    expect(isHTMLTagOpen(`<h1 id='one" class="test'>`)).toBe(true)
-    expect(isHTMLTagOpen(`<input type="text" required />`)).toBe(true)
-    expect(isHTMLTagOpen(`<input id="search"type="text"required/>`)).toBe(true)
-    expect(isHTMLTagOpen(`<\ninput\ntype="text"\nrequired\n/>`)).toBe(true)
+    expect(HTMLTAGOPEN().test((`<h1>`))).toBe(true)
+    expect(HTMLTAGOPEN().test((`<h1 class="test">`))).toBe(true)
+    expect(HTMLTAGOPEN().test((`<details open>`))).toBe(true)
+    expect(HTMLTAGOPEN().test((`<h1 id="one" class="test">`))).toBe(true)
+    expect(HTMLTAGOPEN().test((`<h1 id='one" class="test'>`))).toBe(true)
+    expect(HTMLTAGOPEN().test((`<input type="text" required />`))).toBe(true)
+    expect(HTMLTAGOPEN().test((`<input id="search"type="text"required/>`))).toBe(true)
+    expect(HTMLTAGOPEN().test((`<\ninput\ntype="text"\nrequired\n/>`))).toBe(true)
     // Closing Tags
-    expect(isHTMLTagOpen(`</h1>`)).toBe(false)
-    expect(isHTMLTagOpen(`</\nh1\n>`)).toBe(false)
-    expect(isHTMLTagOpen(`</h1 class="test">`)).toBe(false)
-    expect(isHTMLTagOpen(`</input type="text" required />`)).toBe(false)
-    expect(isHTMLTagOpen(`</\ninput\ntype="text"\nrequired\n/>`)).toBe(false)
+    expect(HTMLTAGOPEN().test((`</h1>`))).toBe(false)
+    expect(HTMLTAGOPEN().test((`</\nh1\n>`))).toBe(false)
+    expect(HTMLTAGOPEN().test((`</h1 class="test">`))).toBe(false)
+    expect(HTMLTAGOPEN().test((`</input type="text" required />`))).toBe(false)
+    expect(HTMLTAGOPEN().test((`</\ninput\ntype="text"\nrequired\n/>`))).toBe(false)
     // Empty tags
-    expect(isHTMLTagOpen(`<>`)).toBe(false)
-    expect(isHTMLTagOpen(`</ >`)).toBe(false)
-    expect(isHTMLTagOpen(`< />`)).toBe(false)
-    expect(isHTMLTagOpen(`</ \n />`)).toBe(false)
-    expect(isHTMLTagOpen(`< \n >`)).toBe(false)
-  })
-
-  it(`Test isHTMLTagClose() / HTMLTAGCLOSE`, () => {
-    // Open Tags
-    expect(isHTMLTagClose(`<h1>`)).toBe(false)
-    expect(isHTMLTagClose(`<h1 class="test">`)).toBe(false)
-    expect(isHTMLTagClose(`<h1 id="one" class="test">`)).toBe(false)
-    expect(isHTMLTagClose(`<h1 id='one" class="test'>`)).toBe(false)
-    expect(isHTMLTagClose(`<details open>`)).toBe(false)
-    expect(isHTMLTagClose(`<input type="text" required />`)).toBe(false)
-    expect(isHTMLTagClose(`<input id="search"type="text"required/>`)).toBe(false)
-    expect(isHTMLTagClose(`<\ninput\ntype="text"\nrequired\n/>`)).toBe(false)
-    // Closing Tags
-    expect(isHTMLTagClose(`</h1>`)).toBe(true)
-    expect(isHTMLTagClose(`</\nh1\n>`)).toBe(true)
-    expect(isHTMLTagClose(`</h1 class="test">`)).toBe(true)
-    expect(isHTMLTagClose(`</input type="text" required />`)).toBe(true)
-    expect(isHTMLTagClose(`</\ninput\ntype="text"\nrequired\n/>`)).toBe(true)
-    // Empty tags
-    expect(isHTMLTagClose(`<>`)).toBe(false)
-    expect(isHTMLTagClose(`</ >`)).toBe(false)
-    expect(isHTMLTagClose(`< />`)).toBe(false)
-    expect(isHTMLTagClose(`</ \n />`)).toBe(false)
-    expect(isHTMLTagClose(`< \n >`)).toBe(false)
+    expect(HTMLTAGOPEN().test((`<>`))).toBe(false)
+    expect(HTMLTAGOPEN().test((`</ >`))).toBe(false)
+    expect(HTMLTAGOPEN().test((`< />`))).toBe(false)
+    expect(HTMLTAGOPEN().test((`</ \n />`))).toBe(false)
+    expect(HTMLTAGOPEN().test((`< \n >`))).toBe(false)
   })
 
   it('Get an HTML tag with a specific attribute, matchTag()', () => {
-    const params = [
-      ['html', 'dark'],
-      [null, 'href'],
-      [null, 'num'],
-      [null, null, '9'],
-      [null, null, 'required'],
-      ['details', 'class', 'test'],
-      ['input', 'type', 'email'],
+    const params: ([string]|[string|null|undefined, Attrs])[] = [
+      ['html'],  // Tag only
+      ['details', {class: 'test'}],
+      ['html', {dark: true}],
+      ['input', {type:'email', id: 'email'}],
+      ['', {href: ''}],
+      [null, {num: true}],
+      [null, {'':'9'}],
+      [null, {'': true}],
+      // False
+      [null, {}],
+      [null, {no: false}],
+      [null, {'': null}],
       ['nonexistent']
     ]
 
-    for (const param of params) {
-      const regex = matchTag(...param)
-      expect(regex.exec(page)).toMatchSnapshot(param.toString()+' | '+regex.source)
-    }
+    const H = new HTMLRx(page).clean()
+    H.select('html')  // First `html` tag
+    expect(H.selected).toMatchInlineSnapshot(`
+      {
+        "index": 5,
+        "name": "html",
+        "raw": "<html dark>",
+        "rawAttrs": " dark",
+        "selfClosing": false,
+      }
+    `)
+    H.select('details', {class:'test'})  // First `details` tag with `class="test"` as attributes
+    expect(H.selected).toMatchInlineSnapshot(`
+      {
+        "index": 414,
+        "name": "details",
+        "raw": "<details class=\\"test\\">",
+        "rawAttrs": " class=\\"test\\"",
+        "selfClosing": false,
+      }
+    `)
+    H.select('html', {dark:true})  // First `html` tag with `dark` attribute
+    expect(H.selected).toMatchInlineSnapshot(`
+      {
+        "index": 5,
+        "name": "html",
+        "raw": "<html dark>",
+        "rawAttrs": " dark",
+        "selfClosing": false,
+      }
+    `)
+    H.select('input', {type:'email', id: 'email'})  // First `input` tag with `type="email" id="email"` as attributes
+    expect(H.selected).toMatchInlineSnapshot(`
+      {
+        "index": 1132,
+        "name": "input",
+        "raw": "<input type=\\"email\\" id=\\"email\\" name=\\"email\\" required/>",
+        "rawAttrs": " type=\\"email\\" id=\\"email\\" name=\\"email\\" required",
+        "selfClosing": true,
+      }
+    `)
+    H.select('', {href: '#'})  // Any tag with `href="#"` attribute
+    expect(H.selected).toMatchInlineSnapshot(`
+      {
+        "index": 239,
+        "name": "a",
+        "raw": "<a href=\\"#\\">",
+        "rawAttrs": " href=\\"#\\"",
+        "selfClosing": false,
+      }
+    `)
+    H.select(null, {num: true})  // Any tag with `num` attribute
+    expect(H.selected).toMatchInlineSnapshot(`
+      {
+        "index": 830,
+        "name": "h1",
+        "raw": "<h1 num=1>",
+        "rawAttrs": " num=1",
+        "selfClosing": false,
+      }
+    `)
+    H.select(null, {'': true})  // Any tag with attributes
+    expect(H.selected).toMatchInlineSnapshot(`
+      {
+        "index": 5,
+        "name": "html",
+        "raw": "<html dark>",
+        "rawAttrs": " dark",
+        "selfClosing": false,
+      }
+    `)
+    H.select(null, {})  // Any tag with no attributes
+    expect(H.selected).toMatchInlineSnapshot(`
+      {
+        "index": 23,
+        "name": "head",
+        "raw": "<head>",
+        "rawAttrs": "",
+        "selfClosing": false,
+      }
+    `)
   })
-
-  it('Get close tag from open tag index, getTagClose()', () => {
-    for (const attr of ATTRS) {
-      const reg = matchTag(null, attr)
-      const first = reg.exec(page)!
-      expect(first).not.toBe(null)
-      const close = getTagClose(page, first.index)!
-      expect(close).not.toBe(null)
-      expect([
-        first[0],
-        close[0],
-        page.slice(first.index, close[1])
-      ]).toMatchSnapshot(attr)
-    }
-  })
-
-  /* Old tests for HTMLTagPosMap (Map<string, number[]>) of open/close tags */
-  // it('Get closing tags', () => {
-  //   for (const test of HTMLTests) {
-  //     const tags = getClosingTags(test)
-  //     for (const [tag, indexes] of tags) {
-  //       for (const i of indexes) {
-  //         expect(test.slice(i - tag.length - 3, i)).toBe(`</${tag}>`)
-  //       }
-  //     }
-  //   }
-  // })
-  // it('Get open tags', () => {
-  //   for (const test of HTMLTests) {
-  //     const tags = getOpenTags(test)
-  //     for (const [tag, indexes] of tags) {
-  //       for (const i of indexes) {
-  //         expect(test.slice(i, i + 1 + tag.length)).toBe(`<${tag}`)
-  //       }
-  //     }
-  //   }
-  // })
-  // it('Get raw tags', () => {
-  //   for (const test of HTMLTests) {
-  //     const tags = getOpenTagsRaw(test)
-  //     for (const [tag, indexes] of tags) {
-  //       for (const i of indexes) {
-  //         expect(test.slice(i, i + tag.length)).toBe(tag)
-  //       }
-  //     }
-  //   }
-  // })
-  // it('Get attributes from raw tags', () => {
-  //   for (const test of HTMLTests) {
-  //     const openTags = getOpenTagsRaw(test)
-  //     const rawTags = getAllAttributes(openTags)
-  //     for (const [tag, attrs] of rawTags.entries()) {
-  //       const hasTag = test.includes(tag)
-  //       for (const [attr, val] of Object.entries(attrs)) {
-  //         const hasAttrs =
-  //           (tag.includes(`${attr} `)) ||
-  //           (tag.includes(` ${attr} `)) ||
-  //           (tag.includes(` ${attr}`)) ||
-  //           (tag.includes(`${attr}="${val}"`)) ||
-  //           (tag.includes(`${attr}='${val}'`)) ||
-  //           (tag.includes(`${attr}=${val}`))
-  //           console.log('HEREEER: ', hasTag, hasAttrs)
-  //         expect(hasTag && hasAttrs).toBe(true)
-  //       }
-  //     }
-  //   }
-  // })
 })

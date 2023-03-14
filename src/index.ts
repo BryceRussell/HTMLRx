@@ -1,6 +1,6 @@
 // import {  } from '~/util'
 
-import type { HTMLTag, HTMLTagPos, Attrs } from '~/types'
+import type { Attrs, HTMLTagPos, HTMLTag, HTMLTagSelected } from '~/types'
 
 export const VOID_TAGS = [
   'meta',
@@ -54,15 +54,14 @@ function eachMatch<T>(str: string, exp: RegExp, callback: (match: RegExpExecArra
     let match = exp.exec(str)
     if (match !== null) {
       result = callback(match)
-      if (result) return result
-      traverse()
+      if (!result) traverse()
     }
     return null
   }
   traverse()
 }
 
-function getAttrs(rawAttrs?: string) {
+function parseAttrs(rawAttrs: string | null | undefined) {
   let obj: Attrs = {}
   if (rawAttrs) {
     eachMatch(rawAttrs, PARSEATTRIBUTES(), (match) => {
@@ -76,7 +75,7 @@ function getAttrs(rawAttrs?: string) {
 function getCloseTagPos(html: string, index: number, name?: string): HTMLTagPos | null {
   let tag: HTMLTagPos | null = null
   let count = 0
-  eachMatch(html.slice(index), HTMLTAG(name), match => {
+  eachMatch(html.slice(index), HTMLTAG(name), (match) => {
     // Match: [1]: '/' if close tag, [2]: tag name, [3]: `/` if self closing tag
     if (count <= 1) {
       // If tag is a closing tag and there is only 1 open tag in count, return its end index
@@ -98,34 +97,10 @@ function getCloseTagPos(html: string, index: number, name?: string): HTMLTagPos 
   return tag
 }
 
-function getElement(html: string, index?: number, name?: string): string | null {
-  let el
-  if (index) {
-    el = getCloseTagPos(html, index, name)
-    if (el) return html.slice(index, el[0])
-  }
-  return null
-}
-
-function getText(html: string, index?: number) {
-  let el = getElement(html, index)
-  let match
-  if (el) match = HTMLTAGTEXT().exec(el)
-  if (match) return (match[1] ?? '') + (match[2] ?? '')
-  return null
-}
-
-function remove(html: string, index?: number) {
-  let el
-  if (index) el = getElement(html, index)
-  if (index && el) return html.replace(new RegExp(`\\s*${el}`), '')
-  return null
-}
-
 
 export class HTMLRx {
   HTML: string
-  selected?: HTMLTag
+  selected: HTMLTagSelected | null | undefined 
 
   constructor(html: string) {
     this.HTML = html
@@ -142,62 +117,109 @@ export class HTMLRx {
 
   walk<T>(
     callback: (tag: {
+      index: number
       raw: string
       name: string
       rawAttrs: string
-      selfClosing: boolean
-      index: number
       attrs: () => Attrs
-      element: () => string | null
+      selfClosing: boolean
+      select: () => true
     }) => T
-  ): T | void {
-    return eachMatch(this.HTML, HTMLTAGOPEN(), (m) =>
-      callback({
+  ): T | undefined | void {
+    return eachMatch(this.HTML, HTMLTAGOPEN(), (m) => {
+      const tag = {
+        index: m.index,
         raw: m[0],
         name: m[1]!,
         rawAttrs: m[2]||'',
-        selfClosing: !!m[3],
-        index: m.index,
-        attrs: () => getAttrs(m[2]),
-        element: () => getElement(this.HTML, m.index),
+        selfClosing: !!m[3]
+      }
+      return callback.call(this, {
+        ...tag,
+        attrs: () => parseAttrs(tag.rawAttrs),
+        select: () => {
+          this.selected = tag
+          return true
+        },
       })
-    )
+    })
   }
 
-  select(name?: string | null, attrs?: Attrs | null, n?: number) {
+  select(name?: string | null | undefined, attrs?: Attrs | null | undefined, n?: number) {
     let found: boolean
-    this.walk(({ index, name: _name, rawAttrs, selfClosing, attrs: _attrs}) => {
-      if (name === _name) found = true
+    this.walk(tag => {
+      if (tag.name == name) found = true
       if (attrs) {
-        let entries = Object.entries(_attrs())
-        for (const [key, val] of entries) {
-          if (attrs[key]) {
-            if (attrs[key] === val || true) found = true
-          }
+        const entries = Object.entries(attrs)
+        if (!entries.length) {
+          if (name) {
+            if (found && !tag.rawAttrs) return tag.select()
+            found = false
+            return false
+          } else if (!tag.rawAttrs) return tag.select()
+        }
+        else {
+          const _attrs = tag.attrs()
+          if (attrs['']) return tag.select()
+          found = entries.every(([k, v]) => _attrs[k] && (v === true || _attrs[k] === v))
         }
       }
-      if (found) {
-        this.selected = {index, name: _name, rawAttrs:rawAttrs||'', selfClosing}
-        return true
-      }
+      if (found) return tag.select()
+      found = false
     })
     return this
   }
 
-  attrs() {
-    return getAttrs(this.selected?.rawAttrs)
+  get attrs(): Attrs {
+    return this.selected?.attrs ?? parseAttrs(this.selected?.rawAttrs) ?? null
+  }
+
+  get closeTag(): HTMLTagPos | null {
+    if (this.selected && !this.selected?.closeTag) this.selected.closeTag = getCloseTagPos(this.HTML, this.selected.index, this.selected.name)
+    return this.selected?.closeTag ?? null
+  }
+
+  set closeTag(val) {
+    if (this.selected) this.selected.closeTag = val
+  }
+
+  get element(): string | null {
+    if (!this.selected || !this.closeTag) return null
+    return this.HTML.slice(this.selected.index, this.closeTag[0])
+  }
+
+  get text() {
+    let el = this.element
+    let match
+    if (el) match = HTMLTAGTEXT().exec(el)
+    if (match) return (match[1] ?? '') + (match[2] ?? '')
+    return null
   }
 
   remove() {
-    this.HTML = remove(this.HTML, this.selected?.index) || this.HTML
+    let el = this.element
+    if (el) this.HTML = this.HTML.replace(new RegExp(`\\s*${el}`), '')
+    this.selected = null
     return this
   }
 
-  element(): string | null {
-    return getElement(this.HTML, this.selected?.index, this.selected?.name)
-  }
-
-  text() {
-    return getText(this.HTML, this.selected?.index)
+  add(element: string, where?: 'before'|'prepend'|'append'|'after') {
+    let index;
+    if (this.selected) {
+      if (where === 'before') index = this.selected.index
+      if (where === 'prepend') index = this.selected.index + this.selected.raw.length
+      if (!index && this.closeTag) {
+        if (where === 'append') index = this.closeTag[0] - this.closeTag[1].length
+        if (where === 'after') index = this.closeTag[0]
+      }
+    }
+    if (index) {
+      // Add to HTML
+      this.HTML = this.HTML.slice(0, index) + element + this.HTML.slice(index)
+      // Re compute indexes for selected tag
+      if (where === 'before') this.selected!.index += element.length
+      // if (where !== 'after')  if (this.closeTag) this.closeTag = [this.closeTag[0]+element.length, this.closeTag[1]]
+    }
+    return this
   }
 }
