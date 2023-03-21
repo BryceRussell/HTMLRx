@@ -1,6 +1,8 @@
 # HTMLRx
 
-> A regex-based toolkit for proccessing strings of HTML
+> Work in progress, subject to change
+
+Manipulate strings of HTML using a regex based toolkit with no AST
 
 # How to use
 
@@ -18,23 +20,29 @@ const html = `
   </details>
 `
 
-const new = HTMLRx(html)
-  .clean()
-  .select('ul')
+const newHTML = HTMLRx(html)
+  .clean() // Remove HTML comments
+  .select('ul') // Select first 'ul' element
+
+  // Once an element is selected you can:
   
+  // Change the element's tag and/or attributes
+  .modify('ol', {class: old => old + 'ordered'})
+  // Remove everything from inside the element
+  .empty()
+  // Remove the element from the HTML
+  .remove()
 
-// Get the selected element's attributes
-const attrs - new.attrs()
-// Get the selected element as a string
-const element = new.element()
-// Get the selected element's text
-const text = new.text()
-// Remove element from HTML
-new.remove()
+  // or
 
-console.log(new.HTML)
+  // Return the element's attributes
+  .attrs()
+  // Return the full element as a string
+  .element()
+  // Return element's text
+  .text()
 ```
-## Using `.walk()`
+### Using `.walk()`
 ```ts
 import { HTMLRx } from 'htmlrx`;
 
@@ -49,10 +57,44 @@ const html = '
   </details>
 '
 
-// Iterate over each open tag
-const new = HTMLRx(html)
-  .walk(({name, text}) => {
-    if (name === ''summary) console.log(text())
+const newHTML = HTMLRx(html)
+  .walk(({index, name, attrs, select}) => {
+    // Select every element and log it to the console
+    select()
+    console.log(this.element())
   })
   
+```
+
+## Example
+
+```js
+const html = `
+  <div class="container">
+    <h1>Title</h1>
+    <p>Paragraph 1</p>
+    <p>Paragraph 2</p>
+    <img src="image.png" alt="Image">
+  </div>
+`
+
+const newHTML = HTMLRx(html)
+  .select(null, {class: 'container'})
+  .modify('section', {class: 'new-class'})
+  .select('h1')
+  .modify('h2')
+  .select('p')
+  .empty()
+  .select('img')
+  .modify('figure', {class: 'image-container'})
+  .HTML
+```
+
+```html
+<section class="new-class">
+  <h2>Title</h2>
+  <p></p>
+  <p>Paragraph 2</p>
+  <figure src="image.png" alt="Image" class="image-container">
+</section>
 ```
