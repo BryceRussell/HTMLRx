@@ -2,7 +2,7 @@
 
 > Work in progress, subject to change
 
-Manipulate strings of HTML using a regex based toolkit with no AST
+Manipulate strings of HTML, a regex based toolkit with no AST
 
 # How to use
 
