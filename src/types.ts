@@ -18,6 +18,11 @@ export type HTMLTagSelected = HTMLTag & {
   element?: string
 }
 
+export type ReturnText<P extends 'before' | 'after' | 'both' | 'tuple' | undefined> =
+  P extends 'tuple'
+    ? [string | undefined, string | undefined] | null
+    : string | null | undefined
+
 // ` word\t\n another word` => ['word', 'another', 'word']
 type SplitAttributes<S extends string, Word extends string = ''> = S extends `${infer First}${infer Rest}`
   ? First extends Whitespace
