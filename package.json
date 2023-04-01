@@ -1,6 +1,6 @@
 {
   "name": "htmlrx",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Utilities for transforming strings of HTML using regex",
   "author": "Bryce Russell",
   "license": "MIT",
