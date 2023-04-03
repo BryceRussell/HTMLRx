@@ -1,8 +1,8 @@
 # HTMLRx
 
-> Work in progress, subject to change
+Manipulate strings of HTML without an AST
 
-Manipulate strings of HTML, a regex based toolkit with no AST
+> **Note**: Work in progress, subject to change
 
 # How to use
 
