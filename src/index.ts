@@ -1,4 +1,4 @@
-import type { Attrs, HTMLTagPos, HTMLTagSelected, ReturnText } from '~/types'
+import type { HTMLTagName, HTMLTagAttributes, AllHTMLAttributes, AttributeObject, GetAttributes, HTMLTagPos, HTMLTagSelected, ReturnText, WalkCallback } from '~/types'
 
 export const VOID_TAGS = [
   'meta',
@@ -37,7 +37,12 @@ export const HTMLTAG = (tag: string | string[] = '[^\\s\\/>]+', flags: string = 
   return new RegExp(regex, flags)
 }
 
-export const HTMLTAGOPEN = (flags: string = 'g') => new RegExp(_HTMLTAGOPEN.source, flags)
+export const HTMLTAGOPEN = (tag: string | string[] = '[^\\s\\/>]+', flags: string = 'g'): RegExp => {
+  let regex = _HTMLTAGOPEN.source
+  if (tag) regex = regex.replace(`[^\\s\\/>]+`, typeof tag === 'string' ? tag : tag.join('|'))
+  return new RegExp(regex, flags)
+}
+
 export const HTMLTAGCLOSE = (flags: string = 'g') => new RegExp(_HTMLTAGCLOSE.source, flags)
 export const PARSEATTRIBUTES = (flags: string = 'g') => new RegExp(_PARSEATTRIBUTES.source, flags)
 export const HTMLTAGTEXT = (flags: string = 'g') => new RegExp(_HTMLTAGTEXT.source, flags)
@@ -57,18 +62,20 @@ function eachMatch<T>(exp: RegExp, str: (() => string) | string, callback: (matc
   return traverse()
 }
 
-function parseAttrs(rawAttrs: string | null | undefined) {
-  let obj: Attrs = {}
+function parseAttrs<T extends string>(rawAttrs: string | null | undefined): GetAttributes<T> {
+  let obj: AttributeObject = {};
   if (rawAttrs) {
     eachMatch(PARSEATTRIBUTES(), rawAttrs, (match) => {
-      const key = match?.[1]
-      if (key) obj[key] = match[2] ?? match[3] ?? match[4] ?? true
-    })
+      const key = match?.[1];
+      if (key) obj[key] = match[2] ?? match[3] ?? match[4] ?? true;
+    });
   }
-  return obj
+  return obj as GetAttributes<T>;
 }
 
-function attrString(attrs: Attrs): string {
+
+
+function attrString(attrs: AttributeObject): string {
   let str = ''
   for (const [k, v] of Object.entries(attrs)) {
     str += ` ${k}="${v}"`
@@ -97,9 +104,9 @@ function findCloseTag(html: string, index: number, name?: string): HTMLTagPos | 
   return tag
 }
 
-export class HTMLRx {
+export class HTMLRx<SelectedTagName extends string = string> {
   HTML: string
-  selected: HTMLTagSelected | null | undefined
+  selected: HTMLTagSelected<SelectedTagName> | null | undefined
 
   constructor(html: string) {
     this.HTML = html
@@ -117,13 +124,13 @@ export class HTMLRx {
     if (this.closeTag && start < this.closeTag[0]) this.closeTag[0] += str.length - (end - start)
   }
 
-  get closeTag(): HTMLTagPos | null {
+  get closeTag(): HTMLTagPos<SelectedTagName> | null {
     if (this.selected && !this.selected.closeTag)
       this.selected.closeTag = findCloseTag(this.HTML, this.selected!.index, this.selected!.name)
     return this.selected?.closeTag ?? null
   }
 
-  set closeTag(val) {
+  set closeTag(val: HTMLTagPos<SelectedTagName> | null | undefined) {
     if (this.selected) this.selected.closeTag = val
   }
 
@@ -138,34 +145,29 @@ export class HTMLRx {
     return this
   }
 
-  walk(
-    callback: (
-      this: HTMLRx,
-      tag: {
-        index: number
-        raw: string
-        name: string
-        rawAttrs: string
-        attrs: () => Attrs
-        selfClosing: boolean
-        select: () => true
-      }
-    ) => boolean | null | undefined | void
+  walk(callback: WalkCallback): HTMLRx;
+  walk<T extends HTMLTagName>(
+    callback: WalkCallback<T>,
+    tagName: T
+  ): HTMLRx;
+  walk<T extends HTMLTagName>(
+    callback: WalkCallback<T>,
+    tagName?: T
   ): HTMLRx {
     eachMatch(
-      HTMLTAGOPEN(),
+      HTMLTAGOPEN(tagName as string),
       () => this.HTML,
-      (m) => {
+      m => {
         const tag = {
           index: m.index,
           raw: m[0],
-          name: m[1]!,
+          name: m[1]! as T,
           rawAttrs: m[2] || '',
           selfClosing: !!m[3],
         }
         return callback.call(this, {
           ...tag,
-          attrs: () => parseAttrs(tag.rawAttrs),
+          attrs: () => parseAttrs<T>(tag.rawAttrs),
           select: () => {
             this.selected = tag
             return true
@@ -176,7 +178,7 @@ export class HTMLRx {
     return this
   }
 
-  select(name?: string | null | undefined, attrs?: Attrs | null | undefined, n?: number) {
+  select(name?: string | null | undefined, attrs?: AttributeObject | null | undefined, n?: number) {
     let found: boolean
     this.walk((tag) => {
       if (tag.name == name) found = true
@@ -218,7 +220,7 @@ export class HTMLRx {
     return this
   }
 
-  modify(name: string | null | undefined, attrs?: ((attrs?: Attrs) => Attrs) | Attrs | null, selfClosing?: boolean) {
+  modify(name: string | null | undefined, attrs?: ((attrs?: AttributeObject) => AttributeObject) | AttributeObject | null, selfClosing?: boolean) {
     if (this.selected) {
       const newName = name ?? this.selected.name
       const newAttrs = typeof attrs === 'function' ? attrs(this.selected?.attrs) : attrs
@@ -266,9 +268,10 @@ export class HTMLRx {
     return this
   }
 
-  attrs(): Attrs {
-    return this.selected?.attrs ?? parseAttrs(this.selected?.rawAttrs)
+  attrs() {
+    return this.selected?.attrs ?? parseAttrs(this.selected?.rawAttrs);
   }
+  
 
   element(): string | null {
     if (this.selected && this.closeTag) {
