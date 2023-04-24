@@ -1,10 +1,10 @@
 # HTMLRx
 
-Manipulate strings of HTML without an AST
+Select and manipulate elements in a HTML string without an AST
 
-> **Note**: Work in progress, subject to change
+> **Note**: This repo is for learning and practice, it is not meant to be a real library and is subject to change
 
-# How to use
+## How to use
 
 ```ts
 import { HTMLRx } from 'htmlrx`;
